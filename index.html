@@ -25,7 +25,6 @@
             padding: 16px;
         }
 
-        /* главный контейнер */
         .private-chat-app {
             max-width: 1400px;
             width: 100%;
@@ -38,7 +37,6 @@
             border: 1px solid #d4af37;
         }
 
-        /* боковая панель с диалогами */
         .dialogs-sidebar {
             width: 320px;
             background: #16231c;
@@ -142,7 +140,6 @@
             text-overflow: ellipsis;
         }
 
-        /* область активного чата */
         .chat-area {
             flex: 1;
             display: flex;
@@ -242,7 +239,6 @@
             margin-top: 40px;
         }
 
-        /* модалка нового чата */
         .modal {
             position: fixed;
             top: 0;
@@ -289,6 +285,15 @@
             cursor: pointer;
         }
 
+        .error-message {
+            background: #8b3a3a;
+            color: #ffc9c9;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 10px;
+            text-align: center;
+        }
+
         footer {
             font-size: 0.65rem;
             text-align: center;
@@ -307,11 +312,9 @@
 <div id="appRoot"></div>
 
 <script>
-    // -------------------  КОНФИГ FIREBASE (ЗАМЕНИТЕ НА ВАШ) -------------------
-    // 🔥 ВАЖНО: Для работы приватных чатов необходимо создать проект Firebase,
-    // включить Authentication (Email/Password) и Firestore.
-    // Ниже пример структуры — замените поля на свои из консоли Firebase.
-   const firebaseConfig = {
+    // 🔥 ВАЖНО: Замените ЭТОТ КОНФИГ на данные из вашей Firebase консоли!
+    // Как получить: Project Overview → Настройки проекта → Твое веб-приложение
+    const firebaseConfig = {
   apiKey: "AIzaSyBMO33F2WExKEEleIeDTV2TyYMizC9ssZY",
   authDomain: "zovchat-f1c83.firebaseapp.com",
   projectId: "zovchat-f1c83",
@@ -319,12 +322,17 @@
   messagingSenderId: "356416079878",
   appId: "1:356416079878:web:14a65405c2fd911bbb5b87"
 };
-    // ⚠️ Внимание! Без реальных данных Firebase приложение не сможет обмениваться сообщениями.
-    // Чтобы всё работало, создайте проект, добавьте веб-приложение, скопируйте конфиг сюда.
-    
-    // Инициализация Firebase
+
+    // Инициализация Firebase с проверкой
     let app, db, auth;
+    let initError = null;
+    
     try {
+        // Проверяем, что конфиг заполнен
+        if (firebaseConfig.apiKey === "ВАШ_API_KEY" || !firebaseConfig.apiKey) {
+            throw new Error("Пожалуйста, замените firebaseConfig на свои данные из Firebase Console!");
+        }
+        
         if (!firebase.apps.length) {
             app = firebase.initializeApp(firebaseConfig);
         } else {
@@ -332,18 +340,22 @@
         }
         db = firebase.firestore(app);
         auth = firebase.auth(app);
-        // Настройка persistence
-        db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn(e));
-    } catch(e) { console.error(e); }
+        
+        // Отключаем персистентность, чтобы избежать ошибок (проще для начала)
+        // Включим позже при необходимости
+        console.log("Firebase инициализирован успешно!");
+    } catch(e) {
+        initError = e.message;
+        console.error("Ошибка инициализации Firebase:", e);
+    }
     
-    // Глобальные переменные приложения
-    let currentUser = null;               // firebase user
-    let activeDialogUserId = null;        // ID собеседника в текущем открытом чате
-    let dialogsList = [];                 // массив объектов { userId, userName, lastMessage, lastTimestamp }
-    let unsubscribeActiveChat = null;     // отписка от сообщений активного чата
-    let dialogsUnsubscribe = null;        // слушатель изменений диалогов
+    // Глобальные переменные
+    let currentUser = null;
+    let activeDialogUserId = null;
+    let dialogsList = [];
+    let unsubscribeActiveChat = null;
+    let dialogsUnsubscribe = null;
     
-    // DOM-контейнер
     const root = document.getElementById('appRoot');
     
     // Вспомогательные функции
@@ -357,15 +369,15 @@
         });
     }
     
-    // Получение ID чата (канонический: лексикографический порядок uid1_uid2)
     function getChatId(uid1, uid2) {
         return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
     }
     
-    // Загрузка/подписка на список диалогов пользователя (приватные чаты)
+    // Подписка на диалоги
     function subscribeToDialogs(userId) {
         if (dialogsUnsubscribe) dialogsUnsubscribe();
-        // Ищем все документы в коллекции "private_chats", где participants содержит userId
+        if (!db) return;
+        
         const q = db.collection("private_chats").where("participants", "array-contains", userId);
         dialogsUnsubscribe = q.onSnapshot(async (snapshot) => {
             const dialogs = [];
@@ -374,14 +386,15 @@
                 const participants = data.participants || [];
                 const otherId = participants.find(id => id !== userId);
                 if (!otherId) continue;
-                // Получаем имя собеседника из users_meta или из participantsNames
+                
                 let otherName = data.participantsNames ? data.participantsNames[otherId] : "Товарищ";
                 if (!otherName || otherName === "Товарищ") {
-                    // попробуем подгрузить из отдельной коллекции
-                    const userDoc = await db.collection("users_meta").doc(otherId).get();
-                    if (userDoc.exists) otherName = userDoc.data().displayName || "Боец";
-                    else otherName = "Воин ZOV";
+                    try {
+                        const userDoc = await db.collection("users_meta").doc(otherId).get();
+                        if (userDoc.exists) otherName = userDoc.data().displayName || "Боец";
+                    } catch(e) { console.warn(e); }
                 }
+                
                 const lastMsg = data.lastMessage || "Нет сообщений";
                 const lastTs = data.lastTimestamp ? data.lastTimestamp.toDate() : new Date(0);
                 dialogs.push({
@@ -394,17 +407,20 @@
             }
             dialogs.sort((a,b) => b.lastTimestamp - a.lastTimestamp);
             dialogsList = dialogs;
-            renderMainApp(); // перерисовываем боковую панель и активный чат если надо
-            // если активный диалог есть, но его нет в списке - сбросим
+            renderMainApp();
+            
             if (activeDialogUserId && !dialogsList.some(d => d.userId === activeDialogUserId)) {
                 activeDialogUserId = null;
                 if (unsubscribeActiveChat) unsubscribeActiveChat();
                 renderMainApp();
             }
-        }, err => console.warn("dialogs listen error", err));
+        }, err => {
+            console.error("Ошибка загрузки диалогов:", err);
+            showError("Ошибка загрузки диалогов. Проверьте правила Firestore.");
+        });
     }
     
-    // Отправка приватного сообщения
+    // Отправка сообщения
     async function sendPrivateMessage(receiverId, text) {
         if (!currentUser || !text.trim() || !receiverId) return;
         const chatId = getChatId(currentUser.uid, receiverId);
@@ -415,8 +431,8 @@
             text: text.trim(),
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         };
+        
         try {
-            // Добавляем сообщение в подколлекцию messages чата
             const chatRef = db.collection("private_chats").doc(chatId);
             await chatRef.set({
                 participants: [currentUser.uid, receiverId],
@@ -427,38 +443,36 @@
                 lastMessage: text.trim(),
                 lastTimestamp: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
-            // Сохраняем имя собеседника в метаданных чата
-            if (receiverId) {
-                const receiverSnap = await db.collection("users_meta").doc(receiverId).get();
-                if (receiverSnap.exists && receiverSnap.data().displayName) {
-                    await chatRef.update({
-                        [`participantsNames.${receiverId}`]: receiverSnap.data().displayName
-                    });
-                }
-            }
+            
             await chatRef.collection("messages").add(messageObj);
-            // Обновим lastMessage и время
             await chatRef.update({
                 lastMessage: text.trim(),
                 lastTimestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-        } catch(e) { console.error("send error", e); alert("Не удалось отправить, проверьте правила Firestore"); }
+        } catch(e) { 
+            console.error("Ошибка отправки:", e);
+            alert("Не удалось отправить сообщение. Проверьте консоль для деталей.");
+        }
     }
     
-    // Подписка на сообщения в активном чате
+    // Подписка на сообщения
     function subscribeToChatMessages(otherUserId) {
         if (unsubscribeActiveChat) unsubscribeActiveChat();
         if (!currentUser || !otherUserId) return;
+        
         const chatId = getChatId(currentUser.uid, otherUserId);
         const messagesRef = db.collection("private_chats").doc(chatId).collection("messages");
         const q = messagesRef.orderBy("timestamp", "asc").limit(100);
+        
         unsubscribeActiveChat = q.onSnapshot(snapshot => {
             const messagesDiv = document.getElementById("activeMessagesArea");
             if (!messagesDiv) return;
+            
             if (snapshot.empty) {
                 messagesDiv.innerHTML = `<div class="empty-chat">💬 Напишите первое сообщение товарищу</div>`;
                 return;
             }
+            
             let html = '';
             snapshot.forEach(doc => {
                 const msg = doc.data();
@@ -479,37 +493,42 @@
             });
             messagesDiv.innerHTML = html;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }, err => console.warn("chat messages error", err));
+        }, err => console.warn("Ошибка чата:", err));
     }
     
-    // Создание нового чата (по email или имени)
+    // Создание нового чата
     async function startNewChatWithUser(targetEmailOrName) {
         if (!currentUser) return;
         const searchTerm = targetEmailOrName.trim().toLowerCase();
         if (!searchTerm) return;
-        // Поиск пользователей в коллекции users_meta (должна заполняться при регистрации)
+        
         try {
-            const usersQuery = await db.collection("users_meta").where("searchIndex", "array-contains", searchTerm).limit(5).get();
+            // Поиск по email точному совпадению
+            const emailQuery = await db.collection("users_meta").where("email", "==", targetEmailOrName).get();
             let foundUser = null;
-            usersQuery.forEach(doc => {
+            
+            emailQuery.forEach(doc => {
                 if (doc.id !== currentUser.uid) foundUser = { id: doc.id, ...doc.data() };
             });
+            
             if (!foundUser) {
-                // дополнительный поиск по email точному
-                const emailQuery = await db.collection("users_meta").where("email", "==", targetEmailOrName).get();
-                emailQuery.forEach(doc => {
+                // Поиск по имени
+                const nameQuery = await db.collection("users_meta").where("displayName", "==", targetEmailOrName).get();
+                nameQuery.forEach(doc => {
                     if (doc.id !== currentUser.uid) foundUser = { id: doc.id, ...doc.data() };
                 });
             }
+            
             if (!foundUser) {
-                alert("Пользователь не найден. Убедитесь, что он зарегистрирован в ZOVchat.");
+                alert("Пользователь не найден. Убедитесь, что он зарегистрирован.");
                 return;
             }
+            
             const otherId = foundUser.id;
             const otherName = foundUser.displayName || "Товарищ";
-            // проверяем существует ли уже диалог
             const chatId = getChatId(currentUser.uid, otherId);
             const chatDoc = await db.collection("private_chats").doc(chatId).get();
+            
             if (!chatDoc.exists) {
                 await db.collection("private_chats").doc(chatId).set({
                     participants: [currentUser.uid, otherId],
@@ -521,24 +540,34 @@
                     lastTimestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
+            
             activeDialogUserId = otherId;
             subscribeToChatMessages(otherId);
             renderMainApp();
         } catch(e) {
             console.error(e);
-            alert("Ошибка поиска. Возможно, правила безопасности Firestore не разрешают чтение users_meta.");
+            alert("Ошибка поиска пользователя: " + e.message);
         }
     }
     
-    // Рендер главного интерфейса (диалоги + активный чат)
+    function showError(msg) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = msg;
+        document.body.prepend(errorDiv);
+        setTimeout(() => errorDiv.remove(), 5000);
+    }
+    
+    // Рендер приложения
     function renderMainApp() {
         if (!currentUser) return;
+        
         const userName = currentUser.displayName || currentUser.email?.split('@')[0] || "Воин";
-        // Генерируем список диалогов
         let dialogsHtml = `<div class="sidebar-header"><h2>📡 ZOVchat</h2><div style="font-size:0.75rem; color:#bdaa6e;">Приватные чаты</div></div>`;
         dialogsHtml += `<div class="user-info"><span class="user-name-side">🔰 ${escapeHtml(userName)}</span><button id="globalLogoutBtn" class="logout-side">Выйти</button></div>`;
         dialogsHtml += `<button id="newChatBtn" class="new-chat-btn">➕ Новый диалог</button>`;
         dialogsHtml += `<div class="dialogs-list">`;
+        
         if (dialogsList.length === 0) {
             dialogsHtml += `<div style="color:#b0b79a; text-align:center; padding:20px;">Нет диалогов. Начни новый!</div>`;
         } else {
@@ -555,7 +584,6 @@
         }
         dialogsHtml += `</div><footer style="padding:12px;">Своих не бросаем — приватно и надёжно</footer>`;
         
-        // Область активного чата
         let chatAreaHtml = `<div class="chat-header-area"><div class="chat-with-name">`;
         if (activeDialogUserId) {
             const activeDialog = dialogsList.find(d => d.userId === activeDialogUserId);
@@ -564,28 +592,31 @@
         } else {
             chatAreaHtml += `📭 Выберите диалог или создайте новый`;
         }
-        chatAreaHtml += `</div></div><div id="messagesContainerScroll" class="messages-container"><div id="activeMessagesArea" class="messages-container" style="overflow-y:auto; display:flex; flex-direction:column; gap:12px;">`;
+        chatAreaHtml += `</div></div><div class="messages-container"><div id="activeMessagesArea" class="messages-container" style="overflow-y:auto; display:flex; flex-direction:column; gap:12px;">`;
         if (!activeDialogUserId) chatAreaHtml += `<div class="empty-chat">✨ Нажмите на диалог или создайте новый чат ✨</div>`;
         chatAreaHtml += `</div></div><div class="input-wrapper"><input type="text" id="privateMessageInput" placeholder="Сообщение..." autocomplete="off"><button id="sendPrivateMsgBtn" class="send-private-btn">➤</button></div>`;
         
         const fullHtml = `<div class="private-chat-app"><div class="dialogs-sidebar">${dialogsHtml}</div><div class="chat-area">${chatAreaHtml}</div></div>`;
         root.innerHTML = fullHtml;
         
-        // Привязываем обработчики
+        // Обработчики
         document.querySelectorAll('.dialog-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 const otherId = el.getAttribute('data-otherid');
                 if (otherId && otherId !== activeDialogUserId) {
                     activeDialogUserId = otherId;
                     subscribeToChatMessages(otherId);
-                    renderMainApp(); // обновляем активный чат
+                    renderMainApp();
                 }
             });
         });
+        
         const logoutBtn = document.getElementById('globalLogoutBtn');
         if (logoutBtn) logoutBtn.onclick = () => auth.signOut();
+        
         const newChatBtn = document.getElementById('newChatBtn');
         if (newChatBtn) newChatBtn.onclick = () => showNewChatModal();
+        
         const sendBtn = document.getElementById('sendPrivateMsgBtn');
         const msgInput = document.getElementById('privateMessageInput');
         if (sendBtn && msgInput && activeDialogUserId) {
@@ -604,7 +635,6 @@
         }
     }
     
-    // Модалка создания нового чата
     function showNewChatModal() {
         const modalDiv = document.createElement('div');
         modalDiv.className = 'modal';
@@ -619,9 +649,11 @@
             </div>
         `;
         document.body.appendChild(modalDiv);
+        
         const searchInput = document.getElementById('searchUserInput');
         const confirmBtn = document.getElementById('modalConfirmBtn');
         const cancelBtn = document.getElementById('modalCancelBtn');
+        
         confirmBtn.onclick = async () => {
             const query = searchInput.value;
             if (query) {
@@ -632,7 +664,7 @@
         cancelBtn.onclick = () => modalDiv.remove();
     }
     
-    // Логин / Регистрация
+    // Экран входа
     function renderLoginScreen(errorMsg = "") {
         root.innerHTML = `
             <div class="modal" style="background:rgba(0,0,0,0.95);">
@@ -644,10 +676,11 @@
                     <input type="password" id="regPassword" placeholder="Пароль (мин 6 символов)">
                     <button id="authActionBtn" class="new-chat-btn" style="width:100%; margin:16px 0 0 0;">ВОЙТИ / РЕГИСТРАЦИЯ</button>
                     <div id="loginErrorMessage" style="color:#ffa76e; font-size:0.8rem; margin-top:10px;">${escapeHtml(errorMsg)}</div>
-                    <div class="guest-note" style="margin-top:16px;">⭐ Если аккаунта нет — создастся автоматически</div>
+                    <div style="margin-top:16px; font-size:0.7rem; color:#9bbf8f;">⭐ Если аккаунта нет — создастся автоматически</div>
                 </div>
             </div>
         `;
+        
         const authBtn = document.getElementById('authActionBtn');
         const nicknameInp = document.getElementById('regNickname');
         const emailInp = document.getElementById('regEmail');
@@ -658,8 +691,16 @@
             const nickname = nicknameInp.value.trim() || "ВоинZOV";
             const email = emailInp.value.trim();
             const password = passInp.value.trim();
-            if (!email || !password) { errorSpan.innerText = "Заполните email и пароль (>=6 символов)"; return; }
-            if (password.length < 6) { errorSpan.innerText = "Пароль минимум 6 символов"; return; }
+            
+            if (!email || !password) { 
+                errorSpan.innerText = "Заполните email и пароль (>=6 символов)"; 
+                return; 
+            }
+            if (password.length < 6) { 
+                errorSpan.innerText = "Пароль минимум 6 символов"; 
+                return; 
+            }
+            
             try {
                 let userCred;
                 try {
@@ -669,16 +710,18 @@
                         userCred = await auth.createUserWithEmailAndPassword(email, password);
                     } else throw err;
                 }
+                
                 const user = userCred.user;
                 await user.updateProfile({ displayName: nickname });
                 await user.reload();
-                // Сохраняем метаданные пользователя для поиска
+                
+                // Сохраняем метаданные
                 await db.collection("users_meta").doc(user.uid).set({
                     displayName: nickname,
                     email: email,
-                    searchIndex: [nickname.toLowerCase(), email.toLowerCase().split('@')[0]],
                     uid: user.uid
                 }, { merge: true });
+                
                 currentUser = auth.currentUser;
                 subscribeToDialogs(currentUser.uid);
             } catch(err) {
@@ -688,31 +731,31 @@
     }
     
     // Основной слушатель аутентификации
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
-            if (!user.displayName) {
-                let name = user.email?.split('@')[0] || "Боец";
-                await user.updateProfile({ displayName: name });
-                await db.collection("users_meta").doc(user.uid).set({
-                    displayName: name,
-                    email: user.email,
-                    searchIndex: [name.toLowerCase(), user.email.toLowerCase().split('@')[0]],
-                }, { merge: true });
+    if (auth && !initError) {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                if (!user.displayName) {
+                    let name = user.email?.split('@')[0] || "Боец";
+                    await user.updateProfile({ displayName: name });
+                    await db.collection("users_meta").doc(user.uid).set({
+                        displayName: name,
+                        email: user.email,
+                        uid: user.uid
+                    }, { merge: true });
+                }
+                subscribeToDialogs(user.uid);
+                if (activeDialogUserId) subscribeToChatMessages(activeDialogUserId);
+            } else {
+                if (unsubscribeActiveChat) unsubscribeActiveChat();
+                if (dialogsUnsubscribe) dialogsUnsubscribe();
+                currentUser = null;
+                activeDialogUserId = null;
+                renderLoginScreen("");
             }
-            subscribeToDialogs(user.uid);
-            if (activeDialogUserId) subscribeToChatMessages(activeDialogUserId);
-        } else {
-            if (unsubscribeActiveChat) unsubscribeActiveChat();
-            if (dialogsUnsubscribe) dialogsUnsubscribe();
-            currentUser = null;
-            activeDialogUserId = null;
-            renderLoginScreen("");
-        }
-    });
-    
-    if (!auth) {
-        root.innerHTML = `<div class="modal"><div class="modal-card"><h2>⚠️ Ошибка Firebase</h2><p>Проверьте конфигурацию в коде (apiKey и др.). Замените на данные из консоли Firebase.</p></div></div>`;
+        });
+    } else {
+        root.innerHTML = `<div class="modal"><div class="modal-card"><h2>⚠️ Ошибка Firebase</h2><p>${initError || "Проверьте конфигурацию Firebase в коде"}</p><p style="margin-top:16px;">📌 Инструкция:<br>1. Зайдите в Firebase Console<br>2. Создайте проект<br>3. Скопируйте firebaseConfig в код</p></div></div>`;
     }
 </script>
 </body>
