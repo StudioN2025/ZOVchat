@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZOVchat — Приватные чаты</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -13,7 +13,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
         }
 
         body {
@@ -31,10 +31,10 @@
             height: 90vh;
             background: #1e2a24;
             border-radius: 32px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             display: flex;
             overflow: hidden;
             border: 1px solid #d4af37;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
         .dialogs-sidebar {
@@ -55,9 +55,6 @@
         .sidebar-header h2 {
             color: #ffde9c;
             font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .user-info {
@@ -73,9 +70,6 @@
         .user-name-side {
             color: #f5e7a3;
             font-weight: bold;
-            font-size: 0.9rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .logout-side {
@@ -85,7 +79,6 @@
             padding: 4px 12px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.7rem;
         }
 
         .new-chat-btn {
@@ -95,13 +88,13 @@
             padding: 10px;
             border-radius: 40px;
             font-weight: bold;
-            color: #1a3a2a;
             cursor: pointer;
             transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+        }
+
+        .new-chat-btn:hover {
+            background: #f3cd6b;
+            transform: scale(1.02);
         }
 
         .dialogs-list {
@@ -119,10 +112,14 @@
             border-left: 4px solid transparent;
         }
 
+        .dialog-item:hover {
+            background: #2f5e42;
+            transform: translateX(4px);
+        }
+
         .dialog-item.active {
             background: #2f5e42;
             border-left-color: #f3c26b;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
         .dialog-name {
@@ -151,9 +148,6 @@
             padding: 18px 24px;
             background: #12281d;
             border-bottom: 1px solid #d4af37;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .chat-with-name {
@@ -166,9 +160,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
             background: #202f26;
         }
 
@@ -178,13 +169,19 @@
             border-radius: 22px;
             background: #2e4438;
             align-self: flex-start;
-            border-bottom-left-radius: 4px;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .message-bubble.my-message {
             align-self: flex-end;
             background: #1f6e46;
-            border-bottom-right-radius: 4px;
+            margin-left: auto;
         }
 
         .msg-sender {
@@ -221,6 +218,11 @@
             border-radius: 40px;
             color: white;
             outline: none;
+            font-size: 1rem;
+        }
+
+        #privateMessageInput:focus {
+            border: 1px solid #d4af37;
         }
 
         .send-private-btn {
@@ -231,12 +233,12 @@
             font-weight: bold;
             cursor: pointer;
             font-size: 1.3rem;
+            transition: 0.2s;
         }
 
-        .empty-chat {
-            text-align: center;
-            color: #9bbf8f;
-            margin-top: 40px;
+        .send-private-btn:hover {
+            background: #f3cd6b;
+            transform: scale(1.05);
         }
 
         .modal {
@@ -245,7 +247,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.95);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -255,10 +257,15 @@
         .modal-card {
             background: #1e3528;
             border-radius: 32px;
-            padding: 28px;
+            padding: 32px;
             width: 90%;
             max-width: 400px;
             border: 1px solid #f3c26b;
+        }
+
+        .modal-card h2, .modal-card h3 {
+            color: #ffde9c;
+            margin-bottom: 16px;
         }
 
         .modal-card input {
@@ -269,6 +276,7 @@
             border: none;
             border-radius: 60px;
             color: white;
+            font-size: 1rem;
         }
 
         .modal-buttons {
@@ -283,15 +291,22 @@
             border-radius: 40px;
             border: none;
             cursor: pointer;
+            font-weight: bold;
         }
 
-        .error-message {
-            background: #8b3a3a;
-            color: #ffc9c9;
-            padding: 12px;
-            border-radius: 12px;
-            margin: 10px;
+        .modal-buttons button:first-child {
+            background: #d4af37;
+        }
+
+        .modal-buttons button:last-child {
+            background: #4a4a4a;
+            color: white;
+        }
+
+        .empty-chat {
             text-align: center;
+            color: #9bbf8f;
+            margin-top: 40px;
         }
 
         footer {
@@ -299,7 +314,13 @@
             text-align: center;
             background: #0b1f16;
             color: #6a8f78;
-            padding: 6px;
+            padding: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #ffde9c;
+            padding: 20px;
         }
 
         @media (max-width: 700px) {
@@ -309,30 +330,25 @@
     </style>
 </head>
 <body>
-<div id="appRoot"></div>
+<div id="appRoot">
+    <div class="loading">Загрузка ZOVchat...</div>
+</div>
 
 <script>
-    // 🔥 ВАЖНО: Замените ЭТОТ КОНФИГ на данные из вашей Firebase консоли!
-    // Как получить: Project Overview → Настройки проекта → Твое веб-приложение
+    // 🔥 ВАШ КОНФИГ FIREBASE (скопирован из консоли)
     const firebaseConfig = {
-  apiKey: "AIzaSyBMO33F2WExKEEleIeDTV2TyYMizC9ssZY",
-  authDomain: "zovchat-f1c83.firebaseapp.com",
-  projectId: "zovchat-f1c83",
-  storageBucket: "zovchat-f1c83.firebasestorage.app",
-  messagingSenderId: "356416079878",
-  appId: "1:356416079878:web:14a65405c2fd911bbb5b87"
-};
+        apiKey: "AIzaSyBMO33F2WExKEEleIeDTV2TyYMizC9ssZY",
+        authDomain: "zovchat-f1c83.firebaseapp.com",
+        projectId: "zovchat-f1c83",
+        storageBucket: "zovchat-f1c83.firebasestorage.app",
+        messagingSenderId: "356416079878",
+        appId: "1:356416079878:web:14a65405c2fd911bbb5b87"
+    };
 
-    // Инициализация Firebase с проверкой
+    // Инициализация Firebase
     let app, db, auth;
-    let initError = null;
     
     try {
-        // Проверяем, что конфиг заполнен
-        if (firebaseConfig.apiKey === "ВАШ_API_KEY" || !firebaseConfig.apiKey) {
-            throw new Error("Пожалуйста, замените firebaseConfig на свои данные из Firebase Console!");
-        }
-        
         if (!firebase.apps.length) {
             app = firebase.initializeApp(firebaseConfig);
         } else {
@@ -340,24 +356,27 @@
         }
         db = firebase.firestore(app);
         auth = firebase.auth(app);
-        
-        // Отключаем персистентность, чтобы избежать ошибок (проще для начала)
-        // Включим позже при необходимости
-        console.log("Firebase инициализирован успешно!");
+        console.log("✅ Firebase инициализирован успешно!");
     } catch(e) {
-        initError = e.message;
-        console.error("Ошибка инициализации Firebase:", e);
+        console.error("❌ Ошибка:", e);
+        document.getElementById('appRoot').innerHTML = `
+            <div class="modal">
+                <div class="modal-card">
+                    <h2>⚠️ Ошибка</h2>
+                    <p>${e.message}</p>
+                </div>
+            </div>
+        `;
     }
-    
+
     // Глобальные переменные
     let currentUser = null;
     let activeDialogUserId = null;
     let dialogsList = [];
     let unsubscribeActiveChat = null;
     let dialogsUnsubscribe = null;
-    
     const root = document.getElementById('appRoot');
-    
+
     // Вспомогательные функции
     function escapeHtml(str) {
         if (!str) return '';
@@ -368,65 +387,19 @@
             return m;
         });
     }
-    
+
     function getChatId(uid1, uid2) {
         return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
     }
-    
-    // Подписка на диалоги
-    function subscribeToDialogs(userId) {
-        if (dialogsUnsubscribe) dialogsUnsubscribe();
-        if (!db) return;
-        
-        const q = db.collection("private_chats").where("participants", "array-contains", userId);
-        dialogsUnsubscribe = q.onSnapshot(async (snapshot) => {
-            const dialogs = [];
-            for (const docSnap of snapshot.docs) {
-                const data = docSnap.data();
-                const participants = data.participants || [];
-                const otherId = participants.find(id => id !== userId);
-                if (!otherId) continue;
-                
-                let otherName = data.participantsNames ? data.participantsNames[otherId] : "Товарищ";
-                if (!otherName || otherName === "Товарищ") {
-                    try {
-                        const userDoc = await db.collection("users_meta").doc(otherId).get();
-                        if (userDoc.exists) otherName = userDoc.data().displayName || "Боец";
-                    } catch(e) { console.warn(e); }
-                }
-                
-                const lastMsg = data.lastMessage || "Нет сообщений";
-                const lastTs = data.lastTimestamp ? data.lastTimestamp.toDate() : new Date(0);
-                dialogs.push({
-                    userId: otherId,
-                    userName: otherName,
-                    lastMessage: lastMsg,
-                    lastTimestamp: lastTs,
-                    chatDocId: docSnap.id
-                });
-            }
-            dialogs.sort((a,b) => b.lastTimestamp - a.lastTimestamp);
-            dialogsList = dialogs;
-            renderMainApp();
-            
-            if (activeDialogUserId && !dialogsList.some(d => d.userId === activeDialogUserId)) {
-                activeDialogUserId = null;
-                if (unsubscribeActiveChat) unsubscribeActiveChat();
-                renderMainApp();
-            }
-        }, err => {
-            console.error("Ошибка загрузки диалогов:", err);
-            showError("Ошибка загрузки диалогов. Проверьте правила Firestore.");
-        });
-    }
-    
+
     // Отправка сообщения
     async function sendPrivateMessage(receiverId, text) {
         if (!currentUser || !text.trim() || !receiverId) return;
+        
         const chatId = getChatId(currentUser.uid, receiverId);
         const messageObj = {
             fromId: currentUser.uid,
-            fromName: currentUser.displayName || currentUser.email?.split('@')[0] || "ZOV Soldier",
+            fromName: currentUser.displayName || currentUser.email?.split('@')[0] || "Воин",
             toId: receiverId,
             text: text.trim(),
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -434,28 +407,36 @@
         
         try {
             const chatRef = db.collection("private_chats").doc(chatId);
+            
+            // Создаем или обновляем чат
             await chatRef.set({
                 participants: [currentUser.uid, receiverId],
                 participantsNames: {
-                    [currentUser.uid]: currentUser.displayName || "Боец",
+                    [currentUser.uid]: currentUser.displayName || "Воин",
                     [receiverId]: "загрузка..."
                 },
                 lastMessage: text.trim(),
                 lastTimestamp: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             
+            // Добавляем сообщение
             await chatRef.collection("messages").add(messageObj);
+            
+            // Обновляем последнее сообщение
             await chatRef.update({
                 lastMessage: text.trim(),
                 lastTimestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            return true;
         } catch(e) { 
             console.error("Ошибка отправки:", e);
-            alert("Не удалось отправить сообщение. Проверьте консоль для деталей.");
+            alert("Не удалось отправить сообщение: " + e.message);
+            return false;
         }
     }
-    
-    // Подписка на сообщения
+
+    // Подписка на сообщения в активном чате
     function subscribeToChatMessages(otherUserId) {
         if (unsubscribeActiveChat) unsubscribeActiveChat();
         if (!currentUser || !otherUserId) return;
@@ -493,34 +474,94 @@
             });
             messagesDiv.innerHTML = html;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }, err => console.warn("Ошибка чата:", err));
+        }, err => {
+            console.warn("Ошибка загрузки сообщений:", err);
+        });
     }
-    
-    // Создание нового чата
-    async function startNewChatWithUser(targetEmailOrName) {
+
+    // Подписка на список диалогов
+    function subscribeToDialogs(userId) {
+        if (dialogsUnsubscribe) dialogsUnsubscribe();
+        if (!db) return;
+        
+        const q = db.collection("private_chats").where("participants", "array-contains", userId);
+        dialogsUnsubscribe = q.onSnapshot(async (snapshot) => {
+            const dialogs = [];
+            
+            for (const docSnap of snapshot.docs) {
+                const data = docSnap.data();
+                const participants = data.participants || [];
+                const otherId = participants.find(id => id !== userId);
+                if (!otherId) continue;
+                
+                let otherName = data.participantsNames ? data.participantsNames[otherId] : "Товарищ";
+                
+                // Если имя не загружено, пробуем получить из users_meta
+                if (otherName === "загрузка..." || otherName === "Товарищ") {
+                    try {
+                        const userDoc = await db.collection("users_meta").doc(otherId).get();
+                        if (userDoc.exists) {
+                            otherName = userDoc.data().displayName || "Боец";
+                            // Обновляем имя в чате
+                            await db.collection("private_chats").doc(docSnap.id).update({
+                                [`participantsNames.${otherId}`]: otherName
+                            });
+                        }
+                    } catch(e) { console.warn(e); }
+                }
+                
+                const lastMsg = data.lastMessage || "Нет сообщений";
+                const lastTs = data.lastTimestamp ? data.lastTimestamp.toDate() : new Date(0);
+                dialogs.push({
+                    userId: otherId,
+                    userName: otherName,
+                    lastMessage: lastMsg,
+                    lastTimestamp: lastTs,
+                    chatDocId: docSnap.id
+                });
+            }
+            
+            dialogs.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+            dialogsList = dialogs;
+            renderMainApp();
+            
+            // Если активный диалог удален, сбрасываем
+            if (activeDialogUserId && !dialogsList.some(d => d.userId === activeDialogUserId)) {
+                activeDialogUserId = null;
+                if (unsubscribeActiveChat) unsubscribeActiveChat();
+                renderMainApp();
+            }
+        }, err => {
+            console.error("Ошибка загрузки диалогов:", err);
+            showTemporaryError("Ошибка загрузки диалогов. Проверьте интернет.");
+        });
+    }
+
+    // Поиск и создание нового чата
+    async function startNewChatWithUser(searchQuery) {
         if (!currentUser) return;
-        const searchTerm = targetEmailOrName.trim().toLowerCase();
+        const searchTerm = searchQuery.trim().toLowerCase();
         if (!searchTerm) return;
         
         try {
-            // Поиск по email точному совпадению
-            const emailQuery = await db.collection("users_meta").where("email", "==", targetEmailOrName).get();
+            // Ищем по email
+            let emailQuery = await db.collection("users_meta").where("email", "==", searchTerm).get();
             let foundUser = null;
             
             emailQuery.forEach(doc => {
                 if (doc.id !== currentUser.uid) foundUser = { id: doc.id, ...doc.data() };
             });
             
+            // Если не нашли, ищем по имени
             if (!foundUser) {
-                // Поиск по имени
-                const nameQuery = await db.collection("users_meta").where("displayName", "==", targetEmailOrName).get();
+                let nameQuery = await db.collection("users_meta").where("displayName", "==", searchTerm).get();
                 nameQuery.forEach(doc => {
                     if (doc.id !== currentUser.uid) foundUser = { id: doc.id, ...doc.data() };
                 });
             }
             
             if (!foundUser) {
-                alert("Пользователь не найден. Убедитесь, что он зарегистрирован.");
+                alert("❌ Пользователь не найден. Убедитесь, что он зарегистрирован в ZOVchat.");
                 return;
             }
             
@@ -533,7 +574,7 @@
                 await db.collection("private_chats").doc(chatId).set({
                     participants: [currentUser.uid, otherId],
                     participantsNames: {
-                        [currentUser.uid]: currentUser.displayName || "Боец",
+                        [currentUser.uid]: currentUser.displayName || "Воин",
                         [otherId]: otherName
                     },
                     lastMessage: "Чат создан",
@@ -546,34 +587,44 @@
             renderMainApp();
         } catch(e) {
             console.error(e);
-            alert("Ошибка поиска пользователя: " + e.message);
+            alert("Ошибка: " + e.message);
         }
     }
-    
-    function showError(msg) {
+
+    function showTemporaryError(msg) {
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
+        errorDiv.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#d32f2f; color:white; padding:12px 24px; border-radius:40px; z-index:10000;';
         errorDiv.textContent = msg;
-        document.body.prepend(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 4000);
     }
-    
-    // Рендер приложения
+
+    // Основной рендер
     function renderMainApp() {
         if (!currentUser) return;
         
         const userName = currentUser.displayName || currentUser.email?.split('@')[0] || "Воин";
-        let dialogsHtml = `<div class="sidebar-header"><h2>📡 ZOVchat</h2><div style="font-size:0.75rem; color:#bdaa6e;">Приватные чаты</div></div>`;
-        dialogsHtml += `<div class="user-info"><span class="user-name-side">🔰 ${escapeHtml(userName)}</span><button id="globalLogoutBtn" class="logout-side">Выйти</button></div>`;
-        dialogsHtml += `<button id="newChatBtn" class="new-chat-btn">➕ Новый диалог</button>`;
-        dialogsHtml += `<div class="dialogs-list">`;
+        
+        // Боковая панель
+        let dialogsHtml = `
+            <div class="sidebar-header">
+                <h2>📡 ZOVchat</h2>
+                <div style="font-size:0.7rem; color:#bdaa6e;">Приватные чаты</div>
+            </div>
+            <div class="user-info">
+                <span class="user-name-side">🔰 ${escapeHtml(userName)}</span>
+                <button id="globalLogoutBtn" class="logout-side">Выйти</button>
+            </div>
+            <button id="newChatBtn" class="new-chat-btn">➕ Новый диалог</button>
+            <div class="dialogs-list">
+        `;
         
         if (dialogsList.length === 0) {
-            dialogsHtml += `<div style="color:#b0b79a; text-align:center; padding:20px;">Нет диалогов. Начни новый!</div>`;
+            dialogsHtml += `<div style="color:#b0b79a; text-align:center; padding:20px;">Нет диалогов. Начните новый!</div>`;
         } else {
             dialogsList.forEach(dialog => {
                 const activeClass = (activeDialogUserId === dialog.userId) ? 'active' : '';
-                const preview = dialog.lastMessage.length > 35 ? dialog.lastMessage.slice(0,32)+'...' : dialog.lastMessage;
+                const preview = dialog.lastMessage.length > 35 ? dialog.lastMessage.slice(0, 32) + '...' : dialog.lastMessage;
                 dialogsHtml += `
                     <div class="dialog-item ${activeClass}" data-otherid="${dialog.userId}">
                         <div class="dialog-name">⚡ ${escapeHtml(dialog.userName)}</div>
@@ -582,9 +633,13 @@
                 `;
             });
         }
-        dialogsHtml += `</div><footer style="padding:12px;">Своих не бросаем — приватно и надёжно</footer>`;
+        dialogsHtml += `</div><footer>🇷🇺 Своих не бросаем — приватно и надёжно</footer>`;
         
-        let chatAreaHtml = `<div class="chat-header-area"><div class="chat-with-name">`;
+        // Область чата
+        let chatAreaHtml = `
+            <div class="chat-header-area">
+                <div class="chat-with-name">
+        `;
         if (activeDialogUserId) {
             const activeDialog = dialogsList.find(d => d.userId === activeDialogUserId);
             const displayNameActive = activeDialog ? activeDialog.userName : "Собеседник";
@@ -592,16 +647,27 @@
         } else {
             chatAreaHtml += `📭 Выберите диалог или создайте новый`;
         }
-        chatAreaHtml += `</div></div><div class="messages-container"><div id="activeMessagesArea" class="messages-container" style="overflow-y:auto; display:flex; flex-direction:column; gap:12px;">`;
-        if (!activeDialogUserId) chatAreaHtml += `<div class="empty-chat">✨ Нажмите на диалог или создайте новый чат ✨</div>`;
-        chatAreaHtml += `</div></div><div class="input-wrapper"><input type="text" id="privateMessageInput" placeholder="Сообщение..." autocomplete="off"><button id="sendPrivateMsgBtn" class="send-private-btn">➤</button></div>`;
+        chatAreaHtml += `
+                </div>
+            </div>
+            <div class="messages-container" id="activeMessagesArea">
+        `;
+        if (!activeDialogUserId) {
+            chatAreaHtml += `<div class="empty-chat">✨ Нажмите на диалог или создайте новый чат ✨</div>`;
+        }
+        chatAreaHtml += `
+            </div>
+            <div class="input-wrapper">
+                <input type="text" id="privateMessageInput" placeholder="Сообщение..." autocomplete="off">
+                <button id="sendPrivateMsgBtn" class="send-private-btn">➤</button>
+            </div>
+        `;
         
-        const fullHtml = `<div class="private-chat-app"><div class="dialogs-sidebar">${dialogsHtml}</div><div class="chat-area">${chatAreaHtml}</div></div>`;
-        root.innerHTML = fullHtml;
+        root.innerHTML = `<div class="private-chat-app"><div class="dialogs-sidebar">${dialogsHtml}</div><div class="chat-area">${chatAreaHtml}</div></div>`;
         
-        // Обработчики
+        // Обработчики событий
         document.querySelectorAll('.dialog-item').forEach(el => {
-            el.addEventListener('click', (e) => {
+            el.addEventListener('click', () => {
                 const otherId = el.getAttribute('data-otherid');
                 if (otherId && otherId !== activeDialogUserId) {
                     activeDialogUserId = otherId;
@@ -615,68 +681,48 @@
         if (logoutBtn) logoutBtn.onclick = () => auth.signOut();
         
         const newChatBtn = document.getElementById('newChatBtn');
-        if (newChatBtn) newChatBtn.onclick = () => showNewChatModal();
+        if (newChatBtn) {
+            newChatBtn.onclick = () => {
+                const email = prompt("Введите email или позывной собеседника:");
+                if (email && email.trim()) startNewChatWithUser(email);
+            };
+        }
         
         const sendBtn = document.getElementById('sendPrivateMsgBtn');
         const msgInput = document.getElementById('privateMessageInput');
         if (sendBtn && msgInput && activeDialogUserId) {
             sendBtn.onclick = async () => {
                 const text = msgInput.value.trim();
-                if (text && activeDialogUserId) {
+                if (text) {
                     await sendPrivateMessage(activeDialogUserId, text);
                     msgInput.value = '';
+                    msgInput.focus();
                 }
             };
             msgInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && activeDialogUserId) {
-                    sendBtn.click();
-                }
+                if (e.key === 'Enter') sendBtn.click();
             });
+        } else if (msgInput) {
+            msgInput.disabled = !activeDialogUserId;
+            msgInput.placeholder = activeDialogUserId ? "Сообщение..." : "Выберите чат для отправки сообщений";
         }
     }
-    
-    function showNewChatModal() {
-        const modalDiv = document.createElement('div');
-        modalDiv.className = 'modal';
-        modalDiv.innerHTML = `
-            <div class="modal-card">
-                <h3 style="color:#ffde9c;">🔍 Найти товарища</h3>
-                <input type="text" id="searchUserInput" placeholder="Email или позывной собеседника">
-                <div class="modal-buttons">
-                    <button id="modalConfirmBtn">Начать чат</button>
-                    <button id="modalCancelBtn">Отмена</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-        
-        const searchInput = document.getElementById('searchUserInput');
-        const confirmBtn = document.getElementById('modalConfirmBtn');
-        const cancelBtn = document.getElementById('modalCancelBtn');
-        
-        confirmBtn.onclick = async () => {
-            const query = searchInput.value;
-            if (query) {
-                await startNewChatWithUser(query);
-                modalDiv.remove();
-            } else alert("Введите данные");
-        };
-        cancelBtn.onclick = () => modalDiv.remove();
-    }
-    
-    // Экран входа
-    function renderLoginScreen(errorMsg = "") {
+
+    // Экран входа/регистрации
+    function renderLoginScreen() {
         root.innerHTML = `
-            <div class="modal" style="background:rgba(0,0,0,0.95);">
+            <div class="modal">
                 <div class="modal-card">
-                    <h2 style="color:#ffde9c;">⚔️ ZOVchat ⚔️</h2>
-                    <p>Приватные чаты для своих</p>
-                    <input type="text" id="regNickname" placeholder="Позывной (отображается в чатах)" style="margin-top:20px;">
-                    <input type="email" id="regEmail" placeholder="Email (для входа)">
-                    <input type="password" id="regPassword" placeholder="Пароль (мин 6 символов)">
-                    <button id="authActionBtn" class="new-chat-btn" style="width:100%; margin:16px 0 0 0;">ВОЙТИ / РЕГИСТРАЦИЯ</button>
-                    <div id="loginErrorMessage" style="color:#ffa76e; font-size:0.8rem; margin-top:10px;">${escapeHtml(errorMsg)}</div>
-                    <div style="margin-top:16px; font-size:0.7rem; color:#9bbf8f;">⭐ Если аккаунта нет — создастся автоматически</div>
+                    <h2>⚔️ ZOVchat ⚔️</h2>
+                    <p style="color:#baccb0; margin-bottom:20px;">Приватные чаты для своих</p>
+                    <input type="text" id="regNickname" placeholder="Позывной (как вас будут видеть)">
+                    <input type="email" id="regEmail" placeholder="Email">
+                    <input type="password" id="regPassword" placeholder="Пароль (минимум 6 символов)">
+                    <button id="authActionBtn" class="new-chat-btn" style="width:100%; margin-top:16px;">ВОЙТИ / ЗАРЕГИСТРИРОВАТЬСЯ</button>
+                    <div id="loginErrorMessage" style="color:#ffa76e; font-size:0.8rem; margin-top:16px; text-align:center;"></div>
+                    <div style="margin-top:20px; font-size:0.7rem; color:#9bbf8f; text-align:center;">
+                        ⭐ Если аккаунта нет — он будет создан автоматически
+                    </div>
                 </div>
             </div>
         `;
@@ -692,14 +738,16 @@
             const email = emailInp.value.trim();
             const password = passInp.value.trim();
             
-            if (!email || !password) { 
-                errorSpan.innerText = "Заполните email и пароль (>=6 символов)"; 
-                return; 
+            if (!email || !password) {
+                errorSpan.innerText = "❌ Заполните email и пароль";
+                return;
             }
-            if (password.length < 6) { 
-                errorSpan.innerText = "Пароль минимум 6 символов"; 
-                return; 
+            if (password.length < 6) {
+                errorSpan.innerText = "❌ Пароль должен быть не менее 6 символов";
+                return;
             }
+            
+            errorSpan.innerText = "⏳ Подключение...";
             
             try {
                 let userCred;
@@ -708,38 +756,53 @@
                 } catch (err) {
                     if (err.code === 'auth/user-not-found') {
                         userCred = await auth.createUserWithEmailAndPassword(email, password);
-                    } else throw err;
+                    } else {
+                        throw err;
+                    }
                 }
                 
                 const user = userCred.user;
                 await user.updateProfile({ displayName: nickname });
                 await user.reload();
                 
-                // Сохраняем метаданные
+                // Сохраняем метаданные пользователя для поиска
                 await db.collection("users_meta").doc(user.uid).set({
                     displayName: nickname,
                     email: email,
                     uid: user.uid
                 }, { merge: true });
                 
-                currentUser = auth.currentUser;
-                subscribeToDialogs(currentUser.uid);
+                console.log("✅ Успешный вход/регистрация!");
+                
             } catch(err) {
-                errorSpan.innerText = "Ошибка: " + err.message;
+                console.error("Ошибка:", err);
+                let errorMessage = err.message;
+                if (err.code === 'auth/invalid-email') errorMessage = "Неверный формат email";
+                if (err.code === 'auth/weak-password') errorMessage = "Слишком слабый пароль (мин 6 символов)";
+                if (err.code === 'auth/email-already-in-use') errorMessage = "Email уже используется, попробуйте войти";
+                errorSpan.innerText = "❌ " + errorMessage;
             }
         };
+        
+        // Enter key support
+        const inputs = [nicknameInp, emailInp, passInp];
+        inputs.forEach(inp => {
+            if (inp) inp.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') authBtn.click();
+            });
+        });
     }
-    
-    // Основной слушатель аутентификации
-    if (auth && !initError) {
+
+    // Слушатель состояния аутентификации
+    if (auth) {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
                 if (!user.displayName) {
-                    let name = user.email?.split('@')[0] || "Боец";
-                    await user.updateProfile({ displayName: name });
+                    const defaultName = user.email?.split('@')[0] || "Воин";
+                    await user.updateProfile({ displayName: defaultName });
                     await db.collection("users_meta").doc(user.uid).set({
-                        displayName: name,
+                        displayName: defaultName,
                         email: user.email,
                         uid: user.uid
                     }, { merge: true });
@@ -751,11 +814,9 @@
                 if (dialogsUnsubscribe) dialogsUnsubscribe();
                 currentUser = null;
                 activeDialogUserId = null;
-                renderLoginScreen("");
+                renderLoginScreen();
             }
         });
-    } else {
-        root.innerHTML = `<div class="modal"><div class="modal-card"><h2>⚠️ Ошибка Firebase</h2><p>${initError || "Проверьте конфигурацию Firebase в коде"}</p><p style="margin-top:16px;">📌 Инструкция:<br>1. Зайдите в Firebase Console<br>2. Создайте проект<br>3. Скопируйте firebaseConfig в код</p></div></div>`;
     }
 </script>
 </body>
