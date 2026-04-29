@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ZOVchat | Патриотический чат</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', 'Times New Roman', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* главный контейнер чата */
+        .chat-container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(30, 30, 35, 0.92);
+            backdrop-filter: blur(3px);
+            border-radius: 42px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 2px #d4af37 inset, 0 0 0 4px #2c5e2e inset;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+        }
+
+        /* шапка — георгиевская лента + ZOV стиль */
+        .chat-header {
+            background: #1f2e1b;
+            background-image: repeating-linear-gradient(45deg, #00000022 0px, #00000022 2px, #ffb34722 2px, #ffb34722 8px);
+            padding: 18px 24px;
+            border-bottom: 3px solid #f7b32b;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffdd99, #ffb347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .zov-symbol {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 2px gold);
+        }
+
+        .sub {
+            color: #ffde9c;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: #2b4423b3;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 40px;
+            margin-top: 6px;
+        }
+
+        /* основное окно сообщений */
+        .messages-area {
+            height: 480px;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #2d2f2a;
+            background-image: radial-gradient(circle at 10% 20%, rgba(210,180,140,0.05) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+        }
+
+        /* стили сообщений */
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 24px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            position: relative;
+            animation: fadeSlideUp 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* свои сообщения (автор — вы) */
+        .message.own {
+            background: #2b6e3c;
+            align-self: flex-end;
+            border-bottom-right-radius: 6px;
+            color: white;
+            border: 1px solid #f5bc70;
+        }
+
+        /* чужие сообщения */
+        .message.other {
+            background: #3e3f3a;
+            align-self: flex-start;
+            border-bottom-left-radius: 6px;
+            color: #f0f0e0;
+            border: 1px solid #a09b7c;
+        }
+
+        .message-username {
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .message-username.own-user {
+            color: #ffdd99;
+        }
+
+        .message-username.other-user {
+            color: #d4c48c;
+        }
+
+        .message-text {
+            font-size: 1rem;
+            word-break: break-word;
+        }
+
+        .message-time {
+            font-size: 0.65rem;
+            text-align: right;
+            margin-top: 6px;
+            opacity: 0.7;
+        }
+
+        /* форма ввода */
+        .input-panel {
+            background: #262a22;
+            padding: 18px 20px;
+            border-top: 2px solid #b8860b;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .name-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #3f4038;
+            padding: 6px 12px;
+            border-radius: 60px;
+        }
+
+        .name-row label {
+            color: #ffd98c;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        #usernameInput {
+            flex: 1;
+            background: #efe6cf;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        #usernameInput:focus {
+            background: #fff3df;
+            box-shadow: 0 0 0 2px #f7b32b;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #messageInput {
+            flex: 1;
+            background: #fffcf0;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 60px;
+            font-size: 1rem;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+        }
+
+        #messageInput:focus {
+            box-shadow: 0 0 0 2px #ffae42;
+            background: white;
+        }
+
+        button {
+            background: linear-gradient(95deg, #d9a13b, #b96f0f);
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 12px 22px;
+            border-radius: 60px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px black;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: linear-gradient(95deg, #f0b84d, #cf7f1a);
+            transform: scale(0.97);
+            box-shadow: 0 1px 3px black;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .status-badge {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 6px;
+            background: #1d2b18;
+            color: #ccc68f;
+            border-top: 1px solid #5f7542;
+        }
+
+        /* скролл */
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-area::-webkit-scrollbar-track {
+            background: #3e403a;
+            border-radius: 10px;
+        }
+
+        .messages-area::-webkit-scrollbar-thumb {
+            background: #f7b32b;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 550px) {
+            .chat-container {
+                border-radius: 28px;
+            }
+            .message {
+                max-width: 92%;
+            }
+            button {
+                padding: 10px 16px;
+            }
+            .chat-header h1 {
+                font-size: 1.6rem;
+            }
+        }
+
+        .loader-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #ffcd7e;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container" id="appRoot">
+    <div class="chat-header">
+        <h1>
+            <span class="zov-symbol">⚡ZOV⚡</span>
+            ZOVchat
+        </h1>
+        <div class="sub">#СвоихНеБросаем | Патриотический чат</div>
+    </div>
+
+    <div class="messages-area" id="messagesContainer">
+        <div style="text-align: center; padding: 20px; color: #d4c38a;">Загрузка сообщений связи...</div>
+    </div>
+
+    <div class="input-panel">
+        <div class="name-row">
+            <label>🔰 Позывной</label>
+            <input type="text" id="usernameInput" placeholder="Воин / Позывной" maxlength="28" autocomplete="off">
+        </div>
+        <div class="message-row">
+            <input type="text" id="messageInput" placeholder="Введите сообщение... Слава России!" maxlength="500">
+            <button id="sendBtn">➤ ОТПРАВИТЬ</button>
+        </div>
+    </div>
+    <div class="status-badge" id="connectionStatus">
+        🔄 Установка защищенного соединения...
+    </div>
+</div>
+
+<script>
+    // ---------------------- КОНФИГУРАЦИЯ FIREBASE ----------------------
+    // ВАЖНО: ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ ИЗ ПРОЕКТА FIREBASE!
+    // (Ниже приведен демо-конфиг — для работы создайте свой проект и скопируйте настройки)
+    // Инструкция: 1. Зайдите в консоль Firebase -> создать проект.
+    // 2. Добавить веб-приложение -> скопировать firebaseConfig сюда.
+    // 3. Включить Firestore (тестовый режим на время разработки: allow read, write: if true;)
+    // 4. Для деплоя на GitHub Pages ключи будут видны, но это клиентский чат, всё ок, просто не храните секреты.
+    const firebaseConfig = {
+        // ==== ВСТАВЬТЕ СВОИ ДАННЫЕ ОТ FIREBASE ====
+        apiKey: "AIzaSyDummyKeyExampleDoNotUseRealOneReplaceMe123",
+        authDomain: "zovchat-3f4a5.firebaseapp.com",
+        projectId: "zovchat-3f4a5",
+        storageBucket: "zovchat-3f4a5.firebasestorage.app",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:abcdef1234567890"
+        // !! ВНИМАНИЕ: для работы вам необходимо заменить эти данные на реальные из вашего проекта Firebase.
+        // Если оставить демо-данные, Firebase выдаст ошибку инициализации.
+        // Как получить: https://console.firebase.google.com/ -> Project settings -> General -> Your apps -> SDK setup.
+    };
+
+    // Инициализируем Firebase (если конфиг корректен)
+    let app, db;
+    let isFirebaseReady = false;
+    let initError = null;
+
+    try {
+        // Проверка: если apiKey содержит 'DummyKey' или явно не настроен - покажем предупреждение, но попробуем инициализировать
+        if (firebaseConfig.apiKey === "AIzaSyDummyKeyExampleDoNotUseRealOneReplaceMe123") {
+            throw new Error("⚠️ Пожалуйста, замените firebaseConfig на свои реальные данные из консоли Firebase! ⚠️");
+        }
+        app = firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        isFirebaseReady = true;
+    } catch (error) {
+        initError = error.message;
+        console.error("Firebase init error:", error);
+        isFirebaseReady = false;
+    }
+
+    // DOM элементы
+    const messagesContainer = document.getElementById('messagesContainer');
+    const usernameInput = document.getElementById('usernameInput');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusSpan = document.getElementById('connectionStatus');
+
+    // Глобальные переменные
+    let currentUser = localStorage.getItem('zovchat_username') || '';
+    if (currentUser) {
+        usernameInput.value = currentUser;
+    } else {
+        currentUser = '';
+    }
+
+    // Сохраняем имя при вводе
+    usernameInput.addEventListener('change', () => {
+        let newName = usernameInput.value.trim();
+        if (newName === "") newName = "Боец";
+        if (newName.length > 28) newName = newName.slice(0,28);
+        currentUser = newName;
+        localStorage.setItem('zovchat_username', currentUser);
+    });
+
+    // Вспомогательная функция отображения статуса
+    function setStatus(text, isError = false) {
+        if (statusSpan) {
+            statusSpan.innerHTML = text;
+            statusSpan.style.color = isError ? "#ffaa88" : "#ccc68f";
+        }
+    }
+
+    // Форматирование времени
+    function formatTime(date) {
+        if (!date) return "только что";
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+    }
+
+    // Отрисовка одного сообщения
+    function renderMessage(msgData, myName) {
+        const msgId = msgData.id;
+        const author = msgData.author || "Аноним";
+        const text = msgData.text || "";
+        const timestamp = msgData.timestamp;
+        const timeStr = timestamp ? formatTime(timestamp) : "—";
+
+        const isOwn = (author === myName && myName !== "");
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        messageDiv.setAttribute('data-id', msgId);
+
+        const userSpanClass = isOwn ? 'own-user' : 'other-user';
+        const userNameHtml = `
+            <div class="message-username ${userSpanClass}">
+                <span>${escapeHtml(author)}</span> ${isOwn ? '🎖️' : '⚔️'}
+            </div>
+        `;
+        const textHtml = `<div class="message-text">${escapeHtml(text)}</div>`;
+        const timeHtml = `<div class="message-time">${timeStr}</div>`;
+        messageDiv.innerHTML = userNameHtml + textHtml + timeHtml;
+        return messageDiv;
+    }
+
+    // Простой экранинг XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // Загрузка и подписка на сообщения (live-обновление)
+    let unsubscribe = null;
+    let currentMyName = "";
+
+    function startListening() {
+        if (!isFirebaseReady || !db) {
+            if (initError) {
+                setStatus(`Ошибка инициализации: ${initError}. Проверьте конфиг Firebase`, true);
+                messagesContainer.innerHTML = `<div style="background:#a11; padding:16px; border-radius:24px; color:white;">❌ Ошибка Firebase: ${escapeHtml(initError)}<br>👉 Замените firebaseConfig на реальные данные из консоли Firebase!</div>`;
+            } else {
+                setStatus("❌ Firebase не инициализирован. Проверьте настройки.", true);
+                messagesContainer.innerHTML = `<div style="background:#a11; padding:16px; border-radius:24px;">Ошибка подключения к БД. Обновите конфиг.</div>`;
+            }
+            return;
+        }
+
+        setStatus("🟢 Подключено к ZOV-серверу (Firestore). Сообщения в реальном времени.");
+        // очистим контейнер и покажем индикатор
+        messagesContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#cfc68a;">Загрузка сообщений...</div>';
+        
+        // Получаем текущее имя для сравнения
+        const updateName = () => {
+            currentMyName = usernameInput.value.trim();
+            if (currentMyName === "") currentMyName = "Боец";
+        };
+        updateName();
+        usernameInput.addEventListener('input', function() {
+            currentMyName = usernameInput.value.trim();
+            if (currentMyName === "") currentMyName = "Боец";
+            // не нужно перезагружать подписку, просто обновим отображение при новых сообщениях
+        });
+
+        // Подписка на коллекцию messages (сортировка по времени)
+        if (unsubscribe) unsubscribe();
+        try {
+            const q = db.collection("messages").orderBy("timestamp", "asc").limit(100);
+            unsubscribe = q.onSnapshot((snapshot) => {
+                // очищаем контейнер (но без мерцания - перестроим)
+                messagesContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.style.textAlign = "center";
+                    emptyDiv.style.padding = "32px";
+                    emptyDiv.style.color = "#b9aa77";
+                    emptyDiv.innerText = "⭐ Сообщений пока нет. Напишите первое! Слава ZOV! ⭐";
+                    messagesContainer.appendChild(emptyDiv);
+                    return;
+                }
+                const myLatestName = usernameInput.value.trim() || "Боец";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const msgObj = {
+                        id: doc.id,
+                        author: data.author || "Боец",
+                        text: data.text || "",
+                        timestamp: data.timestamp ? data.timestamp : null
+                    };
+                    const msgElement = renderMessage(msgObj, myLatestName);
+                    messagesContainer.appendChild(msgElement);
+                });
+                // автоскролл вниз
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, (error) => {
+                console.error("Ошибка snapshot:", error);
+                setStatus(`Ошибка чтения данных: ${error.message}`, true);
+                messagesContainer.innerHTML = `<div style="background:#6a2e2e; padding:16px; border-radius:20px;">🔥 Ошибка Firestore: ${escapeHtml(error.message)}. Проверьте правила БД (read/write должны быть true для теста).</div>`;
+            });
+        } catch(e) {
+            console.error(e);
+            setStatus("Критическая ошибка подписки", true);
+        }
+    }
+
+    // Отправка сообщения
+    async function sendMessage() {
+        if (!isFirebaseReady || !db) {
+            setStatus("❌ Нет подключения к Firebase. Проверьте конфиг.", true);
+            return;
+        }
+        let author = usernameInput.value.trim();
+        if (author === "") {
+            author = "Боец";
+            usernameInput.value = author;
+        }
+        if (author.length > 28) author = author.slice(0,28);
+        const text = messageInput.value.trim();
+        if (text === "") {
+            setStatus("✍️ Введите текст сообщения!", false);
+            return;
+        }
+        if (text.length > 500) {
+            setStatus("❌ Слишком длинное сообщение (макс 500 символов)", true);
+            return;
+        }
+
+        // временно блокируем кнопку, чтобы избежать дублей
+        sendBtn.disabled = true;
+        setStatus("Отправка...");
+        try {
+            await db.collection("messages").add({
+                author: author,
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            messageInput.value = "";
+            messageInput.focus();
+            setStatus("✅ Сообщение доставлено! Свои не бросаем.");
+            // обновим сохраненное имя
+            localStorage.setItem('zovchat_username', author);
+            currentUser = author;
+        } catch (error) {
+            console.error("Send error:", error);
+            setStatus(`❌ Ошибка: ${error.message}. Возможно, правила Firestore запрещают запись.`, true);
+        } finally {
+            sendBtn.disabled = false;
+            // через 2 секунды сбросим статус если не было ошибки
+            setTimeout(() => {
+                if (statusSpan.innerText.includes("✅") || statusSpan.innerText.includes("Ошибка")) {
+                    if(!statusSpan.innerText.includes("Ошибка")) 
+                        setStatus("🟢 Готов к работе. ZOVchat активен.");
+                }
+            }, 2500);
+        }
+    }
+
+    // Инициализация после загрузки страницы
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!isFirebaseReady) {
+            // Отображаем руководство пользователя по настройке
+            messagesContainer.innerHTML = `
+                <div style="background: #3a2a1f; padding: 20px; border-radius: 24px; color: #ffda99; border-left: 6px solid #ffb347;">
+                    <h3>🔧 Настройка Firebase (важно!)</h3>
+                    <p>Для работы чата ZOVchat необходимо создать проект в Firebase и заменить firebaseConfig в коде.</p>
+                    <ol style="margin-left: 20px; margin-top: 12px;">
+                        <li>Перейдите на <a href="https://console.firebase.google.com/" target="_blank" style="color:#ffc857;">console.firebase.google.com</a></li>
+                        <li>Создайте проект (например, "zov-chat")</li>
+                        <li>Добавьте веб-приложение и скопируйте конфиг (apiKey, authDomain и т.д.)</li>
+                        <li>В разделе Firestore создайте базу данных в тестовом режиме (правила: allow read, write: if true;)</li>
+                        <li>Вставьте скопированные данные в const firebaseConfig в этом файле (строки 125-132)</li>
+                        <li>Обновите страницу и пользуйтесь чатом!</li>
+                    </ol>
+                    <p style="margin-top: 12px;">⭐ После настройки все сообщения будут сохраняться в облаке и синхронизироваться.</p>
+                    <hr style="margin:12px 0; border-color:#b97f2e;">
+                    <p><strong>🔥 Текущий статус:</strong> Демо-режим (конфиг не задан). Для публикации на GitHub Pages следуйте инструкции в описании.</p>
+                </div>
+            `;
+            setStatus("⚠️ Требуется настройка Firebase. Смотрите инструкцию выше.", true);
+            sendBtn.disabled = true;
+        } else {
+            sendBtn.disabled = false;
+            startListening();
+        }
+
+        // обработчик кнопки отправить
+        sendBtn.addEventListener('click', () => {
+            if (!isFirebaseReady) {
+                alert("Сначала настройте Firebase (замените конфиг в коде)!");
+                return;
+            }
+            sendMessage();
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!isFirebaseReady) {
+                    alert("Настройте Firebase перед отправкой");
+                    return;
+                }
+                sendMessage();
+            }
+        });
+
+        // если firebase готов, но username сохранен, подтянем его в currentUser
+        if (isFirebaseReady && !currentUser) {
+            usernameInput.value = "ZOV-воин";
+            currentUser = "ZOV-воин";
+            localStorage.setItem('zovchat_username', currentUser);
+        }
+    });
+</script>
+</body>
+</html>
